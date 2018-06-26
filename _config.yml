@@ -2,6 +2,8 @@
 markdown:         kramdown
 highlighter:      pygments
 
+theme: jekyll-theme-tactile
+
 # Permalinks
 permalink:        pretty
 #relative_permalinks: true
@@ -10,11 +12,12 @@ permalink:        pretty
 plugins:
  - jekyll-paginate
  - jekyll-gist
+ - jekyll-theme-tactile
 
 # Setup
-title:            Hyde
+title:            Network Automation!
 tagline:          'A Jekyll theme'
-description:      'A brazen two-column <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
+description:      'Automate ALL the Things! <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
 url:              http://hyde.getpoole.com
 baseurl:          /
 
