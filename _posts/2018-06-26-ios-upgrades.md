@@ -1,4 +1,8 @@
-# Upgrading Cisco IOS Devices with Ansible
+---
+layout: post
+title: Upgrading Cisco IOS Devices with Ansible
+comments: true
+---
 
 Upgrading network images to stable and or later versions is nothing new in the networking world.  A recent discussion with a customer, however, encouraged the creation of a simple, yet effective playbook to help automate this process.
 
@@ -27,7 +31,7 @@ Now, let’s take a look at an Ansible Playbook that can automate this process.
     - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
       block:
       - name: COPY OVER IOS IMAGE
-        command: scp <IOS-IMAGE> ec2-user@{{inventory_hostname}}:/{{inventory_hostname}}.bin
+        command: "scp <IOS-IMAGE> {{inventory_hostname}}:/{{inventory_hostname}}.bin"
 
       - name: SET BOOT SYSTEM FLASH
         ios_config:
