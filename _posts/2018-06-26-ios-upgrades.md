@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: default
 title: Upgrading Cisco IOS Devices with Ansible
 comments: true
 ---
