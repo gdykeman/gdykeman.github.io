@@ -76,7 +76,7 @@ First, the playbook level variables:
 
   tasks:
 ```
-We're passing into the playbook the following:  
+We're passing in the following:  
 `name` - Naming our playbook.  
 `hosts` - What nodes are we targeting? In this case, we are targeting a group called routers.  
 `connection` - Defining the connection type.  
