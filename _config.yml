@@ -6,15 +6,15 @@ highlighter:      pygments
 permalink:        pretty
 
 # Setup
-title:            Network Automation
+title:            Automate ALL the Things!!
 tagline:          'Brownfield (mostly)'
-description:      'Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a>'
-url:              http://termlen0.github.io
+description:      'Observations in network automation<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
+url:              http://gdykeman.github.io
 baseurl:          /
 
 author:
-  name:           'Ajay Chenampara'
-  url:            https://twitter.com/termlen0
+  name:           'Gerald Dykeman'
+  url:            https://twitter.com/geralddykeman
 
 paginate:         5
 
@@ -34,4 +34,4 @@ pages_list:
 #version:          2.1.0
 
 github:
-  repo:           https://github.com/termlen0
+  repo:           https://github.com/gdykeman
