@@ -3,7 +3,7 @@ markdown:         kramdown
 highlighter:      pygments
 
 #Build settings
-theme: minima
+theme: jekyll-theme-tactile
 
 # Permalinks
 permalink:        pretty
