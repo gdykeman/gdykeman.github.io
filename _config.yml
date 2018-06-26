@@ -28,6 +28,7 @@ gems:
   - redcarpet
   - jekyll-gist
   - pygments.rb
+  - minima
 
 #Archive
 pages_list:
