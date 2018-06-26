@@ -15,6 +15,7 @@ At the time, the customer would SSH into each device to upgrade the image, wait 
 
 Now, let’s take a look at an Ansible Playbook that can automate this process.
 ```yaml
+{%raw%}
 ---
 - name: UPGRADE ROUTER FIRMWARE
   hosts: routers
@@ -58,6 +59,7 @@ Now, let’s take a look at an Ansible Playbook that can automate this process.
     - name: SHOW UPDATED VERSION
       debug:
         msg: "{{ ansible_net_version }}"
+{%endraw%}
 ```
 Let's step through the components!  
 
@@ -94,6 +96,7 @@ The `ios_facts` module provides us with the `ansible_net_version` which defines 
 
 Next, we create a `block` which contains a list of tasks.  We put a conditional on this `block` with a `when` statement near the bottom of the playbook - or at the end of the `block`.  The `when` statement does a check to see if the current version of the remote device is *NOT* equal to the version we specify.  If it's *NOT* equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that's required.
 ```yaml
+{%raw%}
 - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
   block:
   - name: COPY OVER IOS IMAGE
@@ -117,6 +120,7 @@ Next, we create a `block` which contains a list of tasks.  We put a conditional 
     delegate_to: localhost
 
   when: ansible_net_version != compliant_ios_version
+{%endraw%}
 ```
 
 The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the `SCP` command to do so.
@@ -128,12 +132,14 @@ We are no ready to reboot the remote device so it boots into the correct image. 
 The next task, as the name suggests, `waits for` the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.
 
 ```yaml
+{%raw%}
 - name: GATHER ROUTER FACTS FOR VERIFICATION
   ios_facts:
 
 - name: SHOW UPDATED VERSION
   debug:
     msg: "{{ ansible_net_version }}"
+{%endraw%}
 ```
 With the remote device having been rebooted, we execute the `ios_facts` module again to capture the new `ansible_net_version`.
 
