@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Test Driven Development (TDD) for networks,  using Ansible &middot; Network Automation
+    
+  </title>
+
+  <!-- CSS -->
+  <!-- <link rel="stylesheet" href="/public/css/poole.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/syntax.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/hyde.css"> -->
+  <!-- <link rel="stylesheet" -->
+
+<link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet"  href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+  <h3 class="masthead-title">
+    <a href="/" title="Home">Network Automation</a>
+
+    
+    &nbsp;&nbsp;&nbsp;
+    <small><a href="/archive">Archive</a></small>
+    
+  </h3>
+  <body class="theme-base-07">
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="/">
+          Network Automation
+        </a>
+      </h1>
+      <p class="lead">Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a></p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/">Home</a>
+
+      
+
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/about/">About</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/acrhive/">Archive</a>
+          
+        
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+
+      <a class="sidebar-nav-item" href="https://github.com/termlen0">GitHub project</a>
+    </nav>
+
+    <p>&copy; 2018. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">Test Driven Development (TDD) for networks,  using Ansible</h1>
+  <span class="post-date">12 Apr 2017</span>
+  <p>In it&#39;s most basic form, TDD works as follows:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>1. Envision the outcome of what you are developing [ Adding a VLAN
+   to a switch ]
+2. Write a test to validate that outcome [ Is the desired VLAN on
+   the switch ]
+3. Run the playbook, to invoke the test [ it will fail - RED test
+   ]
+4. Refactor your code [ write the roles/tasks needed for the tests
+   to pass ]
+5. Re-run tests [role] to ensure that they now pass
+</code></pre></div>
+<p>In this post, I hope to share my observations on how I used ansible to
+implement this using roles. I start with known facts/assumptions:</p>
+
+<!--more-->
+
+<p><em>ASSUMPTION:</em> Given that the VLAN to be added is 101, it should be
+applied to devices <code>nxos-spine1 &amp; nxos-spine2</code> and stp priority
+set as <code>4096</code> and <code>8192</code> respectively.</p>
+
+<p>Following the basic rules listed out at the start of this post let&#39;s
+translate that to ansible code:</p>
+
+<p>(Only snippets are on the blog, for the full playbook, please see <a href="https://github.com/termlen0/TDD_ansible">repo</a>)</p>
+
+<p><em>Though the focus of this post is to demonstrate TDD methodologies -  and
+how we might use them in developing network configurations -  it also
+introduces stratergies around using roles, tags and the <em>reusability</em>
+of roles.</em></p>
+
+<p><em>STEP1</em>: Start with a playbook that calls a role named validation</p>
+<div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span></span><span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">assert</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">that</span><span class="p p-Indicator">:</span>
+      <span class="p p-Indicator">-</span> <span class="s">&quot;</span><span class="nv"> </span><span class="s">{{</span><span class="nv"> </span><span class="s">desired_vlan</span><span class="nv"> </span><span class="s">}}</span><span class="nv"> </span><span class="s">in</span><span class="nv">  </span><span class="s">vlan_list</span><span class="nv"> </span><span class="s">&quot;</span>
+</code></pre></div><div class="highlight"><pre><code class="language-diff" data-lang="diff"><span></span>TASK [validate : assert] *******************************************************
+<span class="gd">- fatal: [nxos-spine1]: FAILED! =&gt; {</span>
+<span class="gd">-    &quot;assertion&quot;: &quot;&#39;101&#39; in vlan_list &quot;,</span>
+<span class="gd">-    &quot;changed&quot;: false,</span>
+<span class="gd">-    &quot;evaluated_to&quot;: false,</span>
+<span class="gd">-    &quot;failed&quot;: true</span>
+<span class="gd">- }</span>
+</code></pre></div>
+<p>At this point, our playbook dir looks as follows</p>
+<div class="highlight"><pre><code class="language-shell" data-lang="shell"><span></span>.
+├── inventory
+├── pb.yaml
+└── roles
+    └── validate
+        └── tasks
+            ├── main.yaml
+            └── vlantest.yaml
+
+<span class="m">3</span> directories, <span class="m">4</span> files
+</code></pre></div>
+<p><em>STEP2</em>: Now, refactor the playbook to add the VLAN  to the switches</p>
+<div class="highlight"><pre><code class="language-diff" data-lang="diff"><span></span>TASK [add_vlan : Add the desired vlan to the switch] ***************************
+<span class="gi">+ ok: [nxos-spine1]</span>
+</code></pre></div>
+<p>And our playbook at this point has the following structure</p>
+<div class="highlight"><pre><code class="language-shell" data-lang="shell"><span></span>.
+├── inventory
+├── pb.yaml
+└── roles
+    ├── add_vlan
+    │   └── tasks
+    │       └── main.yaml
+    └── validate
+        └── tasks
+            ├── main.yaml
+            └── vlantest.yaml
+
+<span class="m">5</span> directories, <span class="m">5</span> files
+</code></pre></div>
+<p><em>STEP3</em>: Now, rerun the playbook, with the validation role and observe
+that all tests pass, in other words, the &quot;GREEN&quot; test.</p>
+<div class="highlight"><pre><code class="language-diff" data-lang="diff"><span></span>TASK [validate : assert] *******************************************************
+<span class="gi">+ ok: [nxos-spine1] =&gt; {</span>
+<span class="gi">+     &quot;changed&quot;: false,</span>
+<span class="gi">+     &quot;msg&quot;: &quot;All assertions passed&quot;</span>
+<span class="gi">+ }</span>
+</code></pre></div>
+<p>Note: Here is how I am invoking my playbook for each step</p>
+
+<p><em>STEP1</em>: <code>ansible-playbook -i inventory pb.yaml  --tags=test</code></p>
+
+<p><em>STEP2</em>: <code>ansible-playbook -i inventory pb.yaml  --tags=add</code></p>
+
+<p><em>STEP3</em>: <code>ansible-playbook -i inventory pb.yaml  --tags=test</code></p>
+
+<p>The playbook uses 2 roles that have tags associated with them</p>
+<div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span></span><span class="l l-Scalar l-Scalar-Plain">roles</span><span class="p p-Indicator">:</span>
+
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">role</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">validate</span>
+      <span class="l l-Scalar l-Scalar-Plain">tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">test</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">role</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">add_vlan</span>
+      <span class="l l-Scalar l-Scalar-Plain">tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">add</span>
+</code></pre></div>
+<p>Also, pay attention to how the <code>main.yaml</code> in the validate role
+is including all other yaml files that match *test.yaml. The
+implication is, that as your playbook scope expands, you can continue
+writing simple, units of test code and name them to match *test.yaml
+(for instance bgptest.yaml etc). If your team collects unit tests at a
+particular location, you now have a <em>reusable</em> unit of code, allowing
+you to reuse this role in any playbook</p>
+<div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span></span><span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Include all the test files</span>
+  <span class="l l-Scalar l-Scalar-Plain">include</span><span class="p p-Indicator">:</span> <span class="s">&quot;</span><span class="nv"> </span><span class="s">{{</span><span class="nv"> </span><span class="s">outer_item</span><span class="nv">  </span><span class="s">}}</span><span class="nv"> </span><span class="s">&quot;</span>
+  <span class="l l-Scalar l-Scalar-Plain">with_fileglob</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="s">&quot;/vagrant/dhcp_helper/roles/validate/tasks/*test.yaml&quot;</span>
+  <span class="l l-Scalar l-Scalar-Plain">loop_control</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">loop_var</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">outer_item</span>
+</code></pre></div>
+<p>We are using a loop to include all the test files and we are replacing
+the standard <em>{{ item }}</em> var with <em>{{ outer_item }}</em> - Why?
+If the unit test files you are including through this loop themselves
+contain a loop, the value of <em>{{ item }}</em> main will be passed into
+the unit test yaml. So we are explicitly setting the loop control
+variable in main to yaml to <em>{{ outer_yaml }}</em></p>
+
+</div>
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+      <li>
+        <h3>
+          <a href="/2018/03/19/observations/">
+            Please reverse mentor your managers
+            <small>19 Mar 2018</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/07/15/observations/">
+            NETCONF Ain't YANG
+            <small>15 Jul 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/04/20/observations/">
+            OT - A quick post on using gpg to manage github in Linux
+            <small>20 Apr 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+  </ul>
+</div>
+
+      
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = '//https-termlen0-github-io.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                
+
+    </div>
+
+  </body>
+</html>

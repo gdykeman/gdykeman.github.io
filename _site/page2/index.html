@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Network Automation &middot; Brownfield (mostly)
+    
+  </title>
+
+  <!-- CSS -->
+  <!-- <link rel="stylesheet" href="/public/css/poole.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/syntax.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/hyde.css"> -->
+  <!-- <link rel="stylesheet" -->
+
+<link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet"  href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+  <h3 class="masthead-title">
+    <a href="/" title="Home">Network Automation</a>
+
+    
+    &nbsp;&nbsp;&nbsp;
+    <small><a href="/archive">Archive</a></small>
+    
+  </h3>
+  <body class="theme-base-07">
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="/">
+          Network Automation
+        </a>
+      </h1>
+      <p class="lead">Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a></p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/">Home</a>
+
+      
+
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/about/">About</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/acrhive/">Archive</a>
+          
+        
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+
+      <a class="sidebar-nav-item" href="https://github.com/termlen0">GitHub project</a>
+    </nav>
+
+    <p>&copy; 2018. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="posts">
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2016/12/28/observations/">
+        The need for a stateful variable tracker and an implementation example
+      </a>
+    </h1>
+
+    <span class="post-date">28 Dec 2016</span>
+
+    <p>When it comes to automation role models, network engineers have often looked up,
+to our compute brethren. For decades, compute admins have had tools that allowed
+them to execute scripts on systems at particular times: typically backups,
+rsync etc. More recently, in the VM universe,  DevOps tools like Chef/Puppet/
+Ansible, have empowered &#39;Developer Administrators&#39;, to stand up the entire app
+stack, automatically.</p>
+
+<p>In my network automation journey, I realized early on that, a big gap/obstacle
+for network automation is the need for a backend, to track positive
+integers; a source of truth, that knows what numeric value was last</p>
+
+    <a href="/2016/12/28/observations/"> Read more </a>
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="/2016/12/16/observations/">
+        Running ansible at scale
+      </a>
+    </h1>
+
+    <span class="post-date">16 Dec 2016</span>
+
+    <p>Last week I deployed my first &quot;at scale&quot; playbook. The overall objective was simple: Add new dhcp helper address to about 400 switches.
+Like most things though, the devil is in the details. Right off the bat, I ran into &quot;non-ansible&quot; related issues (tacacs/ssh).
+That brought the number of devices to about 270. Not a big number right?
+At the most basic level, yes, if I was simply pushing configs using the ios_config
+module.</p>
+
+<h2>Breakdown of the playbook</h2>
+
+<ol>
+<li>Execute a show run on the device and compile a local backup for each device</li>
+<li>Run a pre-flight report, specific to the interfaces we are going to impact (multiple ssh sessions per host)</li>
+<li>Build the configs locally</li>
+<li>Deploy the configs</li>
+<li>Validate the configs/Unit testing</li>
+</ol>
+
+    <a href="/2016/12/16/observations/"> Read more </a>
+  </div>
+  
+</div>
+
+<div class="pagination">
+  
+    <span class="pagination-item older">Older</span>
+  
+  
+    
+      <a class="pagination-item newer" href="/">Newer</a>
+    
+  
+</div>
+
+                                      
+
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      NETCONF Ain't YANG &middot; Network Automation
+    
+  </title>
+
+  <!-- CSS -->
+  <!-- <link rel="stylesheet" href="/public/css/poole.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/syntax.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/hyde.css"> -->
+  <!-- <link rel="stylesheet" -->
+
+<link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet"  href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+  <h3 class="masthead-title">
+    <a href="/" title="Home">Network Automation</a>
+
+    
+    &nbsp;&nbsp;&nbsp;
+    <small><a href="/archive">Archive</a></small>
+    
+  </h3>
+  <body class="theme-base-07">
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="/">
+          Network Automation
+        </a>
+      </h1>
+      <p class="lead">Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a></p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/">Home</a>
+
+      
+
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/about/">About</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/acrhive/">Archive</a>
+          
+        
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+
+      <a class="sidebar-nav-item" href="https://github.com/termlen0">GitHub project</a>
+    </nav>
+
+    <p>&copy; 2018. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">NETCONF Ain't YANG</h1>
+  <span class="post-date">15 Jul 2017</span>
+  <p>Obvious!</p>
+
+<p>Recently I was working on  YANG device models, using NETCONF to
+interact with the actual device (NXOS 7.0.3.I6.1). I was using
+Cisco&#39;s
+<a href="http://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/7-x/programmability/guide/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide_7x/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide_7x_chapter_010100.html">NX-OS Programmability Guide</a> for
+the 7.x version. I have had previous experience working with
+YANG and Cisco&#39;s NEDs through the tail-f/NSO product and was feeling
+quite confident in my understanding of how YANG is being used for
+modeling (Either a service or a device) and how NETCONF was one of the
+protocols used to interact with the model. 
+However, I was getting lost trying to navigate the NXOS&#39;s YANG model
+over the NETCONF client. 
+&lt;!--more--&gt;
+I first attempted to collect the device
+capabilities offered by the NETCONF <code>HELLO</code> and then collect the vlans
+configured on the device. Here is a breakdown of my flawed attempt.</p>
+
+<ol>
+<li>I constructed the connectivity parameters as follows:</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="kn">from</span> <span class="nn">ncclient</span> <span class="kn">import</span> <span class="n">manager</span>
+
+<span class="n">nc_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;allow_agent&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;device_params&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;nexus&#39;</span><span class="p">},</span>
+ <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="s1">&#39;172.16.30.100&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;hostkey_verify&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;look_for_keys&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="s1">&#39;22&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">}</span>
+</code></pre></div>
+<ol>
+<li>Established connectivity to the device and collected the capabilities</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="n">ncm</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="o">**</span><span class="n">nc_params</span><span class="p">)</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">81</span><span class="p">]:</span> <span class="k">for</span> <span class="n">capability</span> <span class="ow">in</span> <span class="n">ncm</span><span class="o">.</span><span class="n">server_capabilities</span><span class="p">:</span>
+   <span class="o">....</span><span class="p">:</span>     <span class="k">print</span> <span class="n">capability</span>
+   <span class="o">....</span><span class="p">:</span>     
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">writable</span><span class="o">-</span><span class="n">running</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">rollback</span><span class="o">-</span><span class="n">on</span><span class="o">-</span><span class="n">error</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">validate</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">url</span><span class="p">:</span><span class="mf">1.0</span><span class="err">?</span><span class="n">scheme</span><span class="o">=</span><span class="nb">file</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">base</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">candidate</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">confirmed</span><span class="o">-</span><span class="n">commit</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">xml</span><span class="p">:</span><span class="n">ns</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">base</span><span class="p">:</span><span class="mf">1.0</span>
+</code></pre></div>
+<ol>
+<li>Devised a filter to collect the vlans configured on the device as
+follows:</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span> <span class="n">vlans_filter</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                   &lt;show&gt;</span>
+<span class="s1">                     &lt;vlan&gt;</span>
+<span class="s1">                         &lt;brief\&gt;</span>
+<span class="s1">                     &lt;/vlan&gt;</span>
+<span class="s1">                   &lt;/show&gt;</span>
+<span class="s1">               &#39;&#39;&#39;</span>
+</code></pre></div>
+<ol>
+<li>And collected the output as follows:</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">85</span><span class="p">]:</span> <span class="n">ncm</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="s1">&#39;subtree&#39;</span><span class="p">,</span> <span class="n">vlans_filter</span><span class="p">))</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">85</span><span class="p">]:</span> 
+<span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0&quot;</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;ISO-8859-1&quot;</span><span class="err">?</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">rpc</span><span class="o">-</span><span class="n">reply</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">&quot;urn:ietf:params:xml:ns:netconf:base:1.0&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="k">if</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:if_manager&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">nfcli</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:nfcli&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">nxos</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">vlan_mgr_cli</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:vlan_mgr_cli&quot;</span> <span class="n">message</span><span class="o">-</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;urn:uuid:b1fec116-f94b-4a1f-8c42-964da7c54f26&quot;</span><span class="o">&gt;</span>
+ <span class="o">&lt;</span><span class="n">data</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">show</span><span class="o">&gt;</span>
+   <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlan</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">brief</span><span class="o">&gt;</span>
+     <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">__XML__OPT_Cmd_show_vlan_brief___readonly__</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">__readonly__</span><span class="o">&gt;</span>
+       <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">TABLE_vlanbriefxbrief</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span><span class="mi">1</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span><span class="mi">1</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span><span class="n">default</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span><span class="n">active</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span><span class="n">noshutdown</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowplist</span><span class="o">-</span><span class="n">ifidx</span><span class="o">&gt;</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">1</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">5</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">6</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">7</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">8</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">9</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">10</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">11</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">12</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">13</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">14</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">15</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">17</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">18</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">19</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">20</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">21</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">22</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">23</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">24</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">25</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">26</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">27</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">28</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">29</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">30</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">31</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">32</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">33</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">34</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">35</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">36</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">37</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">38</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">39</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">40</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">41</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">42</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">43</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">44</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">45</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">46</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">47</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">48</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">49</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">50</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">51</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">52</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">53</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">54</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">55</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">56</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">57</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">58</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">59</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">61</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">62</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">63</span><span class="p">,</span><span class="n">Ethernet1</span><span class="o">/</span><span class="mi">64</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowplist</span><span class="o">-</span><span class="n">ifidx</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span><span class="mi">100</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span><span class="mi">100</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span><span class="n">TEST100</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span><span class="n">active</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span><span class="n">noshutdown</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span><span class="mi">101</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span><span class="mi">101</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span><span class="n">TEST101</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span><span class="n">active</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span><span class="n">noshutdown</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span><span class="mi">102</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span><span class="mi">102</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanid</span><span class="o">-</span><span class="n">utf</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span><span class="n">TEST102</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanname</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span><span class="n">active</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">vlanstate</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span><span class="n">noshutdown</span><span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlanshowbr</span><span class="o">-</span><span class="n">shutstate</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">ROW_vlanbriefxbrief</span><span class="o">&gt;</span>
+       <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">TABLE_vlanbriefxbrief</span><span class="o">&gt;</span>
+      <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">__readonly__</span><span class="o">&gt;</span>
+     <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">__XML__OPT_Cmd_show_vlan_brief___readonly__</span><span class="o">&gt;</span>
+    <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">brief</span><span class="o">&gt;</span>
+   <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">vlan</span><span class="o">&gt;</span>
+  <span class="o">&lt;/</span><span class="n">vlan_mgr_cli</span><span class="p">:</span><span class="n">show</span><span class="o">&gt;</span>
+ <span class="o">&lt;/</span><span class="n">data</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">rpc</span><span class="o">-</span><span class="n">reply</span><span class="o">&gt;</span>
+</code></pre></div>
+<p>As you can see from the output, I am getting the vlan information back
+correctly (you can see details for vlan 1, 100, 101 &amp; 102). However I
+was expecting this to conform to the yang model from the <a href="https://github.com/YangModels/yang/blob/master/vendor/cisco/nx/7.0-3-I6-1/Cisco-NX-OS-device.yang">published Model</a>
+and the output was nowhere close.</p>
+
+<p>After much searching on the web I ran into two of my colleagues&#39;
+blogs :
+1. <a href="https://twitter.com/jedelman8">Jason&#39;s</a> <a href="http://jedelman.com/home/netconf-and-the-ncclient/">blog from over 2 years ago! </a> and
+2. A <a href="https://projectme10.wordpress.com/2017/03/06/cisco-wants-you-to-use-apis-and-it-shows/">more recent post from</a> <a href="https://twitter.com/GabrieleGerbino">Gabriele</a> ) </p>
+
+<p>(This is truly one of the best parts of my job really; working with folks
+much smarter than yourself)</p>
+
+<p>After a quick chat with Jason I realized the source of my confusion. I
+was simply interacting with a NETCONF enabled XML API (exposing a XML
+schema) on NXOS and not
+the YANG model. I was getting somewhere. Revisiting the Cisco
+documentation, I noticed that I had overlooked the connectivity port
+parameter needed to interact with the nexus switch, for YANG!
+So to appears that once the NETCONF agent is enabled on the switch,
+Cisco has provided us with an option of programmatically interacting
+with the device over NETCONF either over port 22 or port 830. If you
+connect over port 22, you can use the XML Schema Database (XSD) over NETCONF
+whereas over port 830, you can use the YANG Model.</p>
+
+<p>So here is the correct way to interact with the NXOS using NETCONF and
+YANG:</p>
+
+<ol>
+<li>Establish the connectivity over port 830</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;allow_agent&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;device_params&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;nexus&#39;</span><span class="p">},</span>
+ <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="s1">&#39;172.16.30.100&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;hostkey_verify&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;look_for_keys&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+ <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="s1">&#39;830&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">}</span>
+
+<span class="n">m</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Look at the offered capabilities (contrast it with the previous
+section)</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">88</span><span class="p">]:</span> <span class="k">for</span> <span class="n">capability</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">server_capabilities</span><span class="p">:</span>
+   <span class="o">....</span><span class="p">:</span>     <span class="k">print</span> <span class="n">capability</span>
+   <span class="o">....</span><span class="p">:</span>     
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">writable</span><span class="o">-</span><span class="n">running</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">vlan</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">26</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">vlan</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">vlan</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">rollback</span><span class="o">-</span><span class="n">on</span><span class="o">-</span><span class="n">error</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">confirmed</span><span class="o">-</span><span class="n">commit</span><span class="p">:</span><span class="mf">1.1</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">validate</span><span class="p">:</span><span class="mf">1.1</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">local</span><span class="o">-</span><span class="n">routing</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">11</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">local</span><span class="o">-</span><span class="n">routing</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">local</span><span class="o">-</span><span class="n">routing</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">bgp</span><span class="o">-</span><span class="n">multiprotocol</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">06</span><span class="o">-</span><span class="mo">06</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">bgp</span><span class="o">-</span><span class="n">multiprotocol</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">bgp</span><span class="o">-</span><span class="n">multiprotocol</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">base</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">base</span><span class="p">:</span><span class="mf">1.1</span>
+<span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">netconf</span><span class="p">:</span><span class="n">capability</span><span class="p">:</span><span class="n">candidate</span><span class="p">:</span><span class="mf">1.0</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">routing</span><span class="o">-</span><span class="n">policy</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">12</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">routing</span><span class="o">-</span><span class="n">policy</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">routing</span><span class="o">-</span><span class="n">policy</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">bgp</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">06</span><span class="o">-</span><span class="mo">06</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">bgp</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">bgp</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">interfaces</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">26</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">interfaces</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="n">interfaces</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">openconfig</span><span class="o">.</span><span class="n">net</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">interfaces</span><span class="o">/</span><span class="n">ip</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2016</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">26</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="k">if</span><span class="o">-</span><span class="n">ip</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">openconfig</span><span class="o">-</span><span class="k">if</span><span class="o">-</span><span class="n">ip</span><span class="o">-</span><span class="n">deviations</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">cisco</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">ns</span><span class="o">/</span><span class="n">yang</span><span class="o">/</span><span class="n">cisco</span><span class="o">-</span><span class="n">nx</span><span class="o">-</span><span class="n">os</span><span class="o">-</span><span class="n">device</span><span class="err">?</span><span class="n">revision</span><span class="o">=</span><span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">16</span><span class="o">&amp;</span><span class="n">module</span><span class="o">=</span><span class="n">cisco</span><span class="o">-</span><span class="n">nx</span><span class="o">-</span><span class="n">os</span><span class="o">-</span><span class="n">device</span><span class="o">&amp;</span><span class="n">deviations</span><span class="o">=</span><span class="n">cisco</span><span class="o">-</span><span class="n">nx</span><span class="o">-</span><span class="n">os</span><span class="o">-</span><span class="n">device</span><span class="o">-</span><span class="n">deviations</span>
+</code></pre></div>
+<ol>
+<li>Use the appropriate namespace to collect the vlan information:</li>
+</ol>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span></span><span class="n">vf</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;&lt;filter type=&quot;subtree&quot;&gt;</span>
+<span class="s2">                &lt;System xmlns=&quot;http://cisco.com/ns/yang/cisco-nx-os-device&quot;&gt;</span>
+<span class="s2">                        &lt;stp-items&gt;</span>
+<span class="s2">                            &lt;inst-items&gt;</span>
+<span class="s2">                              &lt;vlan-items&gt;</span>
+<span class="s2">                                  &lt;Vlan-list/&gt;</span>
+<span class="s2">                              &lt;/vlan-items&gt;</span>
+<span class="s2">                            &lt;/inst-items&gt;</span>
+<span class="s2">                        &lt;/stp-items&gt;</span>
+<span class="s2">                &lt;/System&gt; </span>
+<span class="s2">            &lt;/filter&gt;</span>
+<span class="s2"> &quot;&quot;&quot;</span>
+<span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vf</span><span class="p">)</span>
+
+<span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0&quot;</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span><span class="err">?</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">rpc</span><span class="o">-</span><span class="n">reply</span> <span class="n">xmlns</span><span class="p">:</span><span class="k">if</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:if_manager&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">nfcli</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:nfcli&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">nxos</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0&quot;</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">vlan_mgr_cli</span><span class="o">=</span><span class="s2">&quot;http://www.cisco.com/nxos:1.0:vlan_mgr_cli&quot;</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">&quot;urn:ietf:params:xml:ns:netconf:base:1.0&quot;</span> <span class="n">message</span><span class="o">-</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;urn:uuid:2bdcccfb-e1b7-4d5c-a56d-081410edf08a&quot;</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">data</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">System</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">&quot;http://cisco.com/ns/yang/cisco-nx-os-device&quot;</span><span class="o">&gt;</span>
+            <span class="o">&lt;</span><span class="n">stp</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                <span class="o">&lt;</span><span class="n">inst</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                    <span class="o">&lt;</span><span class="n">vlan</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                        <span class="o">&lt;</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="mi">101</span><span class="o">&lt;/</span><span class="nb">id</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">adminSt</span><span class="o">&gt;</span><span class="n">enabled</span><span class="o">&lt;/</span><span class="n">adminSt</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">bridgeAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">bridgeAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">diameter</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">diameter</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">fwdTime</span><span class="o">&gt;</span><span class="mi">15</span><span class="o">&lt;/</span><span class="n">fwdTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">helloTime</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">helloTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">maxAge</span><span class="o">&gt;</span><span class="mi">20</span><span class="o">&lt;/</span><span class="n">maxAge</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">operErr</span><span class="o">/&gt;</span>
+                            <span class="o">&lt;</span><span class="n">priority</span><span class="o">&gt;</span><span class="mi">32768</span><span class="o">&lt;/</span><span class="n">priority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="n">unknown</span><span class="o">&lt;/</span><span class="n">protocol</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">root</span><span class="o">&gt;</span><span class="n">primary</span><span class="o">&lt;/</span><span class="n">root</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">rootAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPathCost</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPathCost</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPort</span><span class="o">&gt;</span><span class="n">unspecified</span><span class="o">&lt;/</span><span class="n">rootPort</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPortNumber</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPortNumber</span><span class="o">&gt;</span>
+                        <span class="o">&lt;/</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                        <span class="o">&lt;</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="mi">1</span><span class="o">&lt;/</span><span class="nb">id</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">adminSt</span><span class="o">&gt;</span><span class="n">enabled</span><span class="o">&lt;/</span><span class="n">adminSt</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">bridgeAddress</span><span class="o">&gt;</span><span class="mi">08</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">88</span><span class="p">:</span><span class="mi">8</span><span class="n">B</span><span class="p">:</span><span class="n">E1</span><span class="o">&lt;/</span><span class="n">bridgeAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">bridgePriority</span><span class="o">&gt;</span><span class="mi">32769</span><span class="o">&lt;/</span><span class="n">bridgePriority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">diameter</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">diameter</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">fwdTime</span><span class="o">&gt;</span><span class="mi">15</span><span class="o">&lt;/</span><span class="n">fwdTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">helloTime</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">helloTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="k">if</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                                <span class="o">&lt;</span><span class="n">VlanIf</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="n">eth1</span><span class="o">/</span><span class="mi">1</span><span class="o">&lt;/</span><span class="nb">id</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedBridgeAddress</span><span class="o">&gt;</span><span class="mi">08</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">88</span><span class="p">:</span><span class="mi">8</span><span class="n">B</span><span class="p">:</span><span class="n">E1</span><span class="o">&lt;/</span><span class="n">designatedBridgeAddress</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedBridgePriority</span><span class="o">&gt;</span><span class="mi">32769</span><span class="o">&lt;/</span><span class="n">designatedBridgePriority</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedPortNumber</span><span class="o">&gt;</span><span class="mi">1</span><span class="o">&lt;/</span><span class="n">designatedPortNumber</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedPortPriority</span><span class="o">&gt;</span><span class="mi">128</span><span class="o">&lt;/</span><span class="n">designatedPortPriority</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedRootAddress</span><span class="o">&gt;</span><span class="mi">08</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">88</span><span class="p">:</span><span class="mi">8</span><span class="n">B</span><span class="p">:</span><span class="n">E1</span><span class="o">&lt;/</span><span class="n">designatedRootAddress</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedRootCost</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">designatedRootCost</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">designatedRootPriority</span><span class="o">&gt;</span><span class="mi">32769</span><span class="o">&lt;/</span><span class="n">designatedRootPriority</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">portNumber</span><span class="o">&gt;</span><span class="mi">1</span><span class="o">&lt;/</span><span class="n">portNumber</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">portPathCost</span><span class="o">&gt;</span><span class="mi">4</span><span class="o">&lt;/</span><span class="n">portPathCost</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">portPriority</span><span class="o">&gt;</span><span class="mi">128</span><span class="o">&lt;/</span><span class="n">portPriority</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">portRole</span><span class="o">&gt;</span><span class="n">designated</span><span class="o">&lt;/</span><span class="n">portRole</span><span class="o">&gt;</span>
+                                    <span class="o">&lt;</span><span class="n">portState</span><span class="o">&gt;</span><span class="n">disabled</span><span class="o">&lt;/</span><span class="n">portState</span><span class="o">&gt;</span>
+                                <span class="o">&lt;/</span><span class="n">VlanIf</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                            <span class="o">&lt;/</span><span class="k">if</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">maxAge</span><span class="o">&gt;</span><span class="mi">20</span><span class="o">&lt;/</span><span class="n">maxAge</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">operErr</span><span class="o">/&gt;</span>
+                            <span class="o">&lt;</span><span class="n">priority</span><span class="o">&gt;</span><span class="mi">32768</span><span class="o">&lt;/</span><span class="n">priority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="n">rstp</span><span class="o">&lt;/</span><span class="n">protocol</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">root</span><span class="o">&gt;</span><span class="n">primary</span><span class="o">&lt;/</span><span class="n">root</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootAddress</span><span class="o">&gt;</span><span class="mi">08</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">88</span><span class="p">:</span><span class="mi">8</span><span class="n">B</span><span class="p">:</span><span class="n">E1</span><span class="o">&lt;/</span><span class="n">rootAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPathCost</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPathCost</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPort</span><span class="o">&gt;</span><span class="n">unspecified</span><span class="o">&lt;/</span><span class="n">rootPort</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPortNumber</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPortNumber</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPortPriority</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPortPriority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPriority</span><span class="o">&gt;</span><span class="mi">32769</span><span class="o">&lt;/</span><span class="n">rootPriority</span><span class="o">&gt;</span>
+                        <span class="o">&lt;/</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                        <span class="o">&lt;</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="mi">102</span><span class="o">&lt;/</span><span class="nb">id</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">adminSt</span><span class="o">&gt;</span><span class="n">enabled</span><span class="o">&lt;/</span><span class="n">adminSt</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">bridgeAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">bridgeAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">diameter</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">diameter</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">fwdTime</span><span class="o">&gt;</span><span class="mi">15</span><span class="o">&lt;/</span><span class="n">fwdTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">helloTime</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">helloTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">maxAge</span><span class="o">&gt;</span><span class="mi">20</span><span class="o">&lt;/</span><span class="n">maxAge</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">operErr</span><span class="o">/&gt;</span>
+                            <span class="o">&lt;</span><span class="n">priority</span><span class="o">&gt;</span><span class="mi">32768</span><span class="o">&lt;/</span><span class="n">priority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="n">unknown</span><span class="o">&lt;/</span><span class="n">protocol</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">root</span><span class="o">&gt;</span><span class="n">primary</span><span class="o">&lt;/</span><span class="n">root</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">rootAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPathCost</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPathCost</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPort</span><span class="o">&gt;</span><span class="n">unspecified</span><span class="o">&lt;/</span><span class="n">rootPort</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPortNumber</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPortNumber</span><span class="o">&gt;</span>
+                        <span class="o">&lt;/</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                        <span class="o">&lt;</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="mi">100</span><span class="o">&lt;/</span><span class="nb">id</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">adminSt</span><span class="o">&gt;</span><span class="n">enabled</span><span class="o">&lt;/</span><span class="n">adminSt</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">bridgeAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">bridgeAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">diameter</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">diameter</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">fwdTime</span><span class="o">&gt;</span><span class="mi">15</span><span class="o">&lt;/</span><span class="n">fwdTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">helloTime</span><span class="o">&gt;</span><span class="mi">2</span><span class="o">&lt;/</span><span class="n">helloTime</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">maxAge</span><span class="o">&gt;</span><span class="mi">20</span><span class="o">&lt;/</span><span class="n">maxAge</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">operErr</span><span class="o">/&gt;</span>
+                            <span class="o">&lt;</span><span class="n">priority</span><span class="o">&gt;</span><span class="mi">32768</span><span class="o">&lt;/</span><span class="n">priority</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="n">unknown</span><span class="o">&lt;/</span><span class="n">protocol</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">root</span><span class="o">&gt;</span><span class="n">primary</span><span class="o">&lt;/</span><span class="n">root</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootAddress</span><span class="o">&gt;</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="p">:</span><span class="mo">00</span><span class="o">&lt;/</span><span class="n">rootAddress</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPathCost</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPathCost</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPort</span><span class="o">&gt;</span><span class="n">unspecified</span><span class="o">&lt;/</span><span class="n">rootPort</span><span class="o">&gt;</span>
+                            <span class="o">&lt;</span><span class="n">rootPortNumber</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">rootPortNumber</span><span class="o">&gt;</span>
+                        <span class="o">&lt;/</span><span class="n">Vlan</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+                    <span class="o">&lt;/</span><span class="n">vlan</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+                <span class="o">&lt;/</span><span class="n">inst</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+            <span class="o">&lt;/</span><span class="n">stp</span><span class="o">-</span><span class="n">items</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">System</span><span class="o">&gt;</span>
+    <span class="o">&lt;/</span><span class="n">data</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">rpc</span><span class="o">-</span><span class="n">reply</span><span class="o">&gt;</span>
+</code></pre></div>
+<p>As you can see from this output, the data conforms to the yang model
+as follows (only a section shown)</p>
+<div class="highlight"><pre><code class="language-shell" data-lang="shell"><span></span>       +--rw stp-items
+       <span class="p">|</span>  +--rw name?         naming_Name
+       <span class="p">|</span>  +--rw adminSt?      nw_AdminSt
+       <span class="p">|</span>  +--ro operSt?       nw_EntOperSt
+       <span class="p">|</span>  +--ro operErr?      nw_OperErrQual
+       <span class="p">|</span>  +--rw inst-items
+       <span class="p">|</span>     +--rw vlan-items
+       <span class="p">|</span>        +--rw Vlan-list* <span class="o">[</span>id<span class="o">]</span>
+       <span class="p">|</span>           +--rw id                  stp_VlanId
+       <span class="p">|</span>           +--rw priority?           stp_Priority
+       <span class="p">|</span>           +--rw root?               stp_Root
+       <span class="p">|</span>           +--rw diameter?           stp_Diameter
+       <span class="p">|</span>           +--ro operErr?            nw_OperErrQual
+       <span class="p">|</span>           +--ro protocol?           stp_Protocol
+       <span class="p">|</span>           +--rw bridgePriority?     uint16
+       <span class="p">|</span>           +--ro bridgeAddress?      address_Mac
+       <span class="p">|</span>           +--rw rootPriority?       uint16
+       <span class="p">|</span>           +--ro rootAddress?        address_Mac
+       <span class="p">|</span>           +--rw rootPortPriority?   uint16
+       <span class="p">|</span>           +--ro rootPortNumber?     uint16
+       <span class="p">|</span>           +--ro rootPort?           nw_IfId
+       <span class="p">|</span>           +--ro rootPathCost?       uint32
+       <span class="p">|</span>           +--rw adminSt?            nw_AdminSt
+       <span class="p">|</span>           +--rw fwdTime?            stp_FwdTime
+       <span class="p">|</span>           +--rw helloTime?          stp_HelloTime
+       <span class="p">|</span>           +--rw maxAge?             stp_MaxAge
+       <span class="p">|</span>           +--rw <span class="k">if</span>-items
+       <span class="p">|</span>              +--ro VlanIf-list* <span class="o">[</span>id<span class="o">]</span>
+       <span class="p">|</span>                 +--ro id                          nw_IfId
+       <span class="p">|</span>                 +--ro designatedRootPriority?     uint16
+</code></pre></div>
+<p><em>Please Note: I have edited the output of pyang -f tree to highlight the significant portions for this post</em></p>
+
+<p>In summary, be vigilant about the API schema you are working with. It
+is very easy (especially for most of us who are just getting started),
+to not realize whether we are dealing with a YANG model or a XSD
+schema. Hopefully this post highlights the difference and helps
+further our collective understanding. Appreciate your feedback! </p>
+
+</div>
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+      <li>
+        <h3>
+          <a href="/2018/03/19/observations/">
+            Please reverse mentor your managers
+            <small>19 Mar 2018</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/04/20/observations/">
+            OT - A quick post on using gpg to manage github in Linux
+            <small>20 Apr 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/04/12/observations/">
+            Test Driven Development (TDD) for networks,  using Ansible
+            <small>12 Apr 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+  </ul>
+</div>
+
+      
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = '//https-termlen0-github-io.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                
+
+    </div>
+
+  </body>
+</html>

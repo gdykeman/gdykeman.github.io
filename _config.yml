@@ -1,0 +1,37 @@
+# Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+
+# Setup
+title:            Network Automation
+tagline:          'Brownfield (mostly)'
+description:      'Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a>'
+url:              http://termlen0.github.io
+baseurl:          /
+
+author:
+  name:           'Ajay Chenampara'
+  url:            https://twitter.com/termlen0
+
+paginate:         5
+
+excerpt_separator: "<!--more-->"
+
+gems:
+  - jekyll-paginate
+  - redcarpet
+  - jekyll-gist
+  - pygments.rb
+
+#Archive
+pages_list:
+  Archive: '/archive'
+
+# Custom vars
+#version:          2.1.0
+
+github:
+  repo:           https://github.com/termlen0

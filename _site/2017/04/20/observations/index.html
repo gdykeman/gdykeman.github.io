@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      OT - A quick post on using gpg to manage github in Linux &middot; Network Automation
+    
+  </title>
+
+  <!-- CSS -->
+  <!-- <link rel="stylesheet" href="/public/css/poole.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/syntax.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/hyde.css"> -->
+  <!-- <link rel="stylesheet" -->
+
+<link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet"  href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+  <h3 class="masthead-title">
+    <a href="/" title="Home">Network Automation</a>
+
+    
+    &nbsp;&nbsp;&nbsp;
+    <small><a href="/archive">Archive</a></small>
+    
+  </h3>
+  <body class="theme-base-07">
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="/">
+          Network Automation
+        </a>
+      </h1>
+      <p class="lead">Observations in network automation<br /> <a href="https://twitter.com/termlen0" target="_blank">@termlen0</a></p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/">Home</a>
+
+      
+
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/about/">About</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/acrhive/">Archive</a>
+          
+        
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+
+      <a class="sidebar-nav-item" href="https://github.com/termlen0">GitHub project</a>
+    </nav>
+
+    <p>&copy; 2018. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">OT - A quick post on using gpg to manage github in Linux</h1>
+  <span class="post-date">20 Apr 2017</span>
+  <p>After being used to OSX Keychains in my old mac, I wanted a similar
+functionality on my Linux laptop. Being prompted each time to login,
+while interacting with <a href="https://github.com">github</a> for instance was
+annoying. Searching the web, led me to
+<a href="https://git-scm.com/docs/git-credential-store">git-credential-store</a>.
+I was not too happy with the fact that credentials would be stored in
+clear text, locally, indefinitely. I came across this stackoverflow
+<a href="http://stackoverflow.com/questions/5343068/is-there-a-way-to-skip-password-typing-when-using-https-on-github/18362082#18362082">post</a> that
+I adapted for Linux. The concept is as follows:</p>
+
+<ol>
+<li>Use a .netrc file to store your credentials. This follows the
+  file format for <a href="https://www.ibm.com/support/knowledgecenter/SSB27U_6.2.0/com.ibm.zvm.v620.kijl0/netrcd.htm#netrcd">netrc</a></li>
+<li>Encrypt this file,
+  using <a href="https://www.gnupg.org/">GNU Privacy Guard</a>
+&lt;!--more--&gt;</li>
+<li>Download and add the
+  <a href="https://raw.githubusercontent.com/git/git/master/contrib/credential/netrc/git-credential-netrc">git credential helper script</a> to
+  your path.</li>
+<li>Update git config to tell it to use the encrypted credentials file</li>
+</ol>
+
+<h3>STEP 1: The .netrc file</h3>
+
+<p>As described in the link above, the .netrc file follows a standard and
+looks like this: <a href="/assets/gpg3.png"><img src="/assets/gpg3.png" alt=""></a></p>
+
+<p>We save this in our home directory - this is obviously clear-text. We will now
+encrypt the file and delete the clear-text one</p>
+
+<h3>STEP 2: Encrypt the .netrc file</h3>
+
+<p>GNU Privacy Guard, was new to me. Solving this specific problem also
+taught me about how to use GPG in general to sign and encrypt any
+piece of data that needs to be exchanged securely. The basic premise
+is we create a public/private key pair, similar to SSH. This is stored
+in a &quot;key-ring&quot; on our computer. We can potentially add other trusted
+public-keys to this key-ring and decrypt/verify files that are signed
+by the sender&#39;s private key.
+For our example, here is how I did it:</p>
+
+<p><em>GENERATE THE KEY PAIRS</em></p>
+
+<p><a href="/assets/gpg1.png"><img src="/assets/gpg1.png" alt=""></a></p>
+
+<p><em>After moving the mouse around for a bit:</em></p>
+
+<p><a href="/assets/gpg2.png"><img src="/assets/gpg2.png" alt=""></a></p>
+
+<p><em>You can see the keyring :</em></p>
+
+<p><a href="/assets/gpg4.png"><img src="/assets/gpg4.png" alt=""></a></p>
+
+<p><em>Now we can use our private key to encrypt the .netrc file</em></p>
+
+<p><a href="/assets/gpg5.png"><img src="/assets/gpg5.png" alt=""></a></p>
+
+<p>(I had to specify a recipient. In our case since github was going to
+use my email id as the &#39;end-user&#39; to decrypt the .netrc file, I
+specified it as the recipient)</p>
+
+<p>At this point, you may delete your clear text .netrc and will be left
+with a .netrc.gpg file</p>
+
+<h3>STEP 3: Download and add the git credential helper:</h3>
+
+<p><a href="https://raw.githubusercontent.com/git/git/master/contrib/credential/netrc/git-credential-netrc">This perl script</a> is
+used by git to unencrypt the .netrc.gpg file. So you will need to make
+it executable and store it in a directory in your <code>$PATH</code>
+variable.</p>
+<div class="highlight"><pre><code class="language-shell" data-lang="shell"><span></span>curl -o /home/ajay/bin/git-credential-netrc https://raw.github.com/git/git/master/contrib/credential/net‌​rc/git-credential-ne‌​trc
+</code></pre></div>
+<h3>STEP 4: Tell git about the encrypted credentials</h3>
+
+<p>Finally, you use the git config command to inform git to use the
+credential helper. This is when you also point it to the location of
+the newly encrypted .netrc.gpg file.</p>
+<div class="highlight"><pre><code class="language-shell" data-lang="shell"><span></span>git config --local credential.helper <span class="s2">&quot;netrc -f /home/ajay/.netrc.gpg -v -d&quot;</span>
+</code></pre></div>
+<p>( The -v and -d are diagnostic flags - verbose/debug. This helps you
+track issues if you run into any. )</p>
+
+<p>If you happen to follow these steps and if you had any questions, I
+would be happy to help and hopefully better my understanding as well.</p>
+
+</div>
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+      <li>
+        <h3>
+          <a href="/2018/03/19/observations/">
+            Please reverse mentor your managers
+            <small>19 Mar 2018</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/07/15/observations/">
+            NETCONF Ain't YANG
+            <small>15 Jul 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2017/04/12/observations/">
+            Test Driven Development (TDD) for networks,  using Ansible
+            <small>12 Apr 2017</small>
+          </a>
+        </h3>
+      </li>
+    
+  </ul>
+</div>
+
+      
+<!-- Add Disqus comments. -->
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = '//https-termlen0-github-io.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                
+
+    </div>
+
+  </body>
+</html>
