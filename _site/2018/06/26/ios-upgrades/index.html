@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Upgrading Cisco IOS Devices with Ansible &middot; Hyde
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="/">
+          Hyde
+        </a>
+      </h1>
+      <p class="lead">A brazen two-column <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/">Home</a>
+
+      
+
+      
+      
+        
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/about/">About</a>
+          
+        
+      
+        
+      
+        
+          
+        
+      
+
+      <a class="sidebar-nav-item" href="https://github.com/poole/hyde/archive/v2.1.0.zip">Download</a>
+      <a class="sidebar-nav-item" href="https://github.com/poole/hyde">GitHub project</a>
+      <span class="sidebar-nav-item">Currently v2.1.0</span>
+    </nav>
+
+    <p>&copy; 2018. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">Upgrading Cisco IOS Devices with Ansible</h1>
+  <span class="post-date">26 Jun 2018</span>
+  <p>Upgrading network images to stable and or later versions is nothing new in the networking world.  A recent discussion with a customer, however, encouraged the creation of a simple, yet effective playbook to help automate this process.</p>
+
+<p>The two use cases were around:</p>
+<ol>
+  <li>
+    <p>CVE.  A vulnerability is reported and an image upgrade is required to resolve it.</p>
+  </li>
+  <li>
+    <p>Compliance checking.  Ensure that the networking devices are at the compliant and approved version of code, and if not, make sure that it is.</p>
+  </li>
+</ol>
+
+<p>At the time, the customer would SSH into each device to upgrade the image, wait for it to boot back up, check to make sure the image was upgraded to the correct version, then move onto the next device.  In the case of the vulnerability, this became an all hands on deck activity that resulted in many hours from multiple engineers to patch the network devices.</p>
+
+<p>Now, let’s take a look at an Ansible Playbook that can automate this process.</p>
+<pre><code class="language-yaml">
+---
+- name: UPGRADE ROUTER FIRMWARE
+  hosts: routers
+  connection: network_cli
+  gather_facts: no
+
+  vars:
+    compliant_ios_version: 16.08.01a
+
+  tasks:
+    - name: GATHER ROUTER FACTS
+      ios_facts:
+
+    - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+      block:
+      - name: COPY OVER IOS IMAGE
+        command: "scp &lt;IOS-IMAGE&gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin"
+
+      - name: SET BOOT SYSTEM FLASH
+        ios_config:
+          commands:
+            - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+
+      - name: REBOOT ROUTER
+        ios_command:
+          commands:
+            - "reload\n"
+
+      - name: WAIT FOR ROUTER TO RETURN
+        wait_for:
+          host: "{{inventory_hostname}}"
+          port: 22
+          delay: 60
+        delegate_to: localhost
+
+      when: ansible_net_version != compliant_ios_version
+
+    - name: GATHER ROUTER FACTS FOR VERIFICATION
+      ios_facts:
+
+    - name: SHOW UPDATED VERSION
+      debug:
+        msg: "{{ ansible_net_version }}"
+
+</code></pre>
+<p>Let’s step through the components!</p>
+
+<p>First, the playbook level variables:</p>
+<pre><code class="language-yaml">---
+- name: UPGRADE ROUTER FIRMWARE
+  hosts: routers
+  connection: network_cli
+  gather_facts: no
+
+  vars:
+    compliant_ios_version: 16.08.01a
+
+  tasks:
+</code></pre>
+<p>We’re passing in the following:<br />
+<code>name</code> - Naming our playbook.<br />
+<code>hosts</code> - What nodes are we targeting? In this case, we are targeting a group called routers.<br />
+<code>connection</code> - Defining the connection type.<br />
+<code>gather_facts</code> - This is a server specific task and does not apply to us.<br />
+<code>vars</code> - Defining a variable that we will use to compare IOS versions.<br />
+<code>tasks</code> - Where we will list the tasks we want the playbook to accomplish.</p>
+
+<p>The first task:</p>
+<pre><code class="language-yaml">- name: GATHER ROUTER FACTS
+  ios_facts:
+</code></pre>
+<p>The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.<br />
+<a href="https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html">ios_facts_module</a></p>
+
+<p>The <code>ios_facts</code> module provides us with the <code>ansible_net_version</code> which defines the operating system version running on the remote device.  We’ll be using this as conditional logic in our proceeding tasks.</p>
+
+<p>Next, we create a <code>block</code> which contains a list of tasks.  We put a conditional on this <code>block</code> with a <code>when</code> statement near the bottom of the playbook - or at the end of the <code>block</code>.  The <code>when</code> statement does a check to see if the current version of the remote device is <em>NOT</em> equal to the version we specify.  If it’s <em>NOT</em> equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that’s required.</p>
+<pre><code class="language-yaml">
+- name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+  block:
+  - name: COPY OVER IOS IMAGE
+    command: scp &lt;IOS-IMAGE&gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin
+
+  - name: SET BOOT SYSTEM FLASH
+    ios_config:
+      commands:
+        - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+
+  - name: REBOOT ROUTER
+    ios_command:
+      commands:
+        - "reload\n"
+
+  - name: WAIT FOR ROUTER TO RETURN
+    wait_for:
+      host: "{{inventory_hostname}}"
+      port: 22
+      delay: 60
+    delegate_to: localhost
+
+  when: ansible_net_version != compliant_ios_version
+
+</code></pre>
+
+<p>The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the <code>SCP</code> command to do so.</p>
+
+<p>Next, we utilize the <code>ios_config</code> module to set the boot system of the remote device so it’ll use the image the new image if the version is not compliant or what we want it to be.</p>
+
+<p>We are now ready to reboot the remote device so it boots into the correct image.  We pass in <strong>“reload\n”</strong> into the <code>ios_command</code> to perform the reload.</p>
+
+<p>The next task, as the name suggests, <code>waits for</code> the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.</p>
+
+<pre><code class="language-yaml">
+- name: GATHER ROUTER FACTS FOR VERIFICATION
+  ios_facts:
+
+- name: SHOW UPDATED VERSION
+  debug:
+    msg: "{{ ansible_net_version }}"
+
+</code></pre>
+<p>With the remote device having been rebooted, we execute the <code>ios_facts</code> module again to capture the new <code>ansible_net_version</code>.</p>
+
+<p>Finally, we use the <code>debug</code> module to display the new version and see that the upgrade was successful and the remote device is now running the compliant IOS version.</p>
+
+</div>
+
+<div class="related">
+  <h2>Related Posts</h2>
+  <ul class="related-posts">
+    
+      <li>
+        <h3>
+          <a href="/2013/12/28/introducing-hyde/">
+            Introducing Hyde
+            <small>28 Dec 2013</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2012/02/07/example-content/">
+            Example content
+            <small>07 Feb 2012</small>
+          </a>
+        </h3>
+      </li>
+    
+      <li>
+        <h3>
+          <a href="/2012/02/06/whats-jekyll/">
+            What's Jekyll?
+            <small>06 Feb 2012</small>
+          </a>
+        </h3>
+      </li>
+    
+  </ul>
+</div>
+
+    </div>
+
+  </body>
+</html>
