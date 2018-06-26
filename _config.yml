@@ -8,7 +8,7 @@ permalink:        pretty
 # Setup
 title:            Automate ALL the Things!!
 tagline:          'Brownfield (mostly)'
-description:      'Observations in network automation<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
+description:      'Network Automation Repository<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
 url:              http://gdykeman.github.io
 baseurl:          /
 
