@@ -12,18 +12,18 @@ permalink:        pretty
 plugins:
  - jekyll-paginate
  - jekyll-gist
- - jekyll-theme-tactile
+ - jekyll-remote-theme
 
 # Setup
 title:            Network Automation!
-tagline:          'A Jekyll theme'
-description:      'Automate ALL the Things! <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
-url:              http://hyde.getpoole.com
+tagline:          'Brownfield (mostly)'
+description:      'Automate ALL the Things!<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
+url:              http://gdykeman.github.io
 baseurl:          /
 
 author:
-  name:           'Mark Otto'
-  url:            https://twitter.com/mdo
+  name:           'Gerald Dykeman'
+  url:            https://twitter.com/geralddykeman
 
 paginate:         5
 
@@ -31,4 +31,4 @@ paginate:         5
 version:          2.1.0
 
 github:
-  repo:           https://github.com/poole/hyde
+  repo:           https://github.com/gdykeman
