@@ -90,7 +90,7 @@ The first task:
   ios_facts:
 ```
 The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.  
- https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html
+[ios_facts_module](https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html)
 
 The `ios_facts` module provides us with the `ansible_net_version` which defines the operating system version running on the remote device.  We'll be using this as conditional logic in our proceeding tasks.  
 
