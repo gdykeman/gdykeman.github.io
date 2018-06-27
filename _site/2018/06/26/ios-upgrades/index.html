@@ -40,7 +40,7 @@
           Network Automation!
         </a>
       </h1>
-      <p class="lead">Gerald Dykeman <br />CCIE #366354</p>
+      <p class="lead">Gerald Dykeman <br />CCIE #36354</p>
     </div>
 
     <nav class="sidebar-nav">
@@ -115,12 +115,12 @@
     - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
       block:
       - name: COPY OVER IOS IMAGE
-        command: "scp &lt;IOS-IMAGE&gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin"
+        command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
 
       - name: SET BOOT SYSTEM FLASH
         ios_config:
           commands:
-            - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+            - "boot system flash:system-image-filename.bin"
 
       - name: REBOOT ROUTER
         ios_command:
@@ -180,12 +180,12 @@
 - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
   block:
   - name: COPY OVER IOS IMAGE
-    command: scp &lt;IOS-IMAGE&gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin
+    command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
 
   - name: SET BOOT SYSTEM FLASH
     ios_config:
       commands:
-        - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+        - "boot system flash:system-image-filename.bin"
 
   - name: REBOOT ROUTER
     ios_command:

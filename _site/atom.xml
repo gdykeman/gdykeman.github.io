@@ -4,7 +4,7 @@
  <title>Network Automation!</title>
  <link href="http://localhost:4000/atom.xml" rel="self"/>
  <link href="http://localhost:4000/"/>
- <updated>2018-06-27T07:55:38-04:00</updated>
+ <updated>2018-06-27T08:16:35-04:00</updated>
  <id>http://localhost:4000</id>
  <author>
    <name>Gerald Dykeman</name>
@@ -49,12 +49,12 @@
     - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
       block:
       - name: COPY OVER IOS IMAGE
-        command: &quot;scp &amp;lt;IOS-IMAGE&amp;gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin&quot;
+        command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;
 
       - name: SET BOOT SYSTEM FLASH
         ios_config:
           commands:
-            - &quot;boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin&quot;
+            - &quot;boot system flash:system-image-filename.bin&quot;
 
       - name: REBOOT ROUTER
         ios_command:
@@ -114,12 +114,12 @@
 - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
   block:
   - name: COPY OVER IOS IMAGE
-    command: scp &amp;lt;IOS-IMAGE&amp;gt; {{inventory_hostname}}:/{{inventory_hostname}}.bin
+    command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;
 
   - name: SET BOOT SYSTEM FLASH
     ios_config:
       commands:
-        - &quot;boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin&quot;
+        - &quot;boot system flash:system-image-filename.bin&quot;
 
   - name: REBOOT ROUTER
     ios_command:
