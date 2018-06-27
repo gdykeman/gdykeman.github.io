@@ -17,7 +17,7 @@ plugins:
 # Setup
 title:            Network Automation!
 tagline:          'Brownfield (mostly)'
-description:      'Gerald Dykeman <br />CCIE #366354'
+description:      'Gerald Dykeman <br />CCIE #36354'
 url:              http://gdykeman.github.io
 baseurl:          /
 
