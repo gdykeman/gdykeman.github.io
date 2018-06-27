@@ -17,7 +17,7 @@ plugins:
 # Setup
 title:            Network Automation!
 tagline:          'Brownfield (mostly)'
-description:      'Automate ALL the Things!<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
+description:      'Gerald Dykeman <br />CCIE #366354'
 url:              http://gdykeman.github.io
 baseurl:          /
 
