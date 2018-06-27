@@ -32,12 +32,12 @@ Now, let’s take a look at an Ansible Playbook that can automate this process.
     - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
       block:
       - name: COPY OVER IOS IMAGE
-        command: "scp <IOS-IMAGE> {{inventory_hostname}}:/{{inventory_hostname}}.bin"
+        command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
 
       - name: SET BOOT SYSTEM FLASH
         ios_config:
           commands:
-            - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+            - "boot system flash:system-image-filename.bin"
 
       - name: REBOOT ROUTER
         ios_command:
@@ -100,12 +100,12 @@ Next, we create a `block` which contains a list of tasks.  We put a conditional 
 - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
   block:
   - name: COPY OVER IOS IMAGE
-    command: scp <IOS-IMAGE> {{inventory_hostname}}:/{{inventory_hostname}}.bin
+    command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
 
   - name: SET BOOT SYSTEM FLASH
     ios_config:
       commands:
-        - "boot system flash:{{inventory_hostname}}:/{{inventory_hostname}}.bin"
+        - "boot system flash:system-image-filename.bin"
 
   - name: REBOOT ROUTER
     ios_command:
