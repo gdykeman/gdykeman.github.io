@@ -139,9 +139,10 @@
     - name: GATHER ROUTER FACTS FOR VERIFICATION
       ios_facts:
 
-    - name: SHOW UPDATED VERSION
-      debug:
-        msg: "{{ ansible_net_version }}"
+    - name: ASSERT THAT THE IOS VERSION IS CORRECT
+      assert:
+        that:
+          - compliant_ios_version == ansible_net_version
 
 </code></pre>
 <p>Let’s step through the components!</p>
@@ -215,14 +216,15 @@
 - name: GATHER ROUTER FACTS FOR VERIFICATION
   ios_facts:
 
-- name: SHOW UPDATED VERSION
-  debug:
-    msg: "{{ ansible_net_version }}"
+- name: ASSERT THAT THE IOS VERSION IS CORRECT
+  assert:
+    that:
+      - compliant_ios_version == ansible_net_version
 
 </code></pre>
 <p>With the remote device having been rebooted, we execute the <code>ios_facts</code> module again to capture the new <code>ansible_net_version</code>.</p>
 
-<p>Finally, we use the <code>debug</code> module to display the new version and see that the upgrade was successful and the remote device is now running the compliant IOS version.</p>
+<p>Finally, we use the <code>assert</code> module to ensure that the upgrade was successful and the remote device is running the compliant IOS version.  By using the <code>assert</code> module, we make the playbook fail if it is <em>NOT</em> the correct version.</p>
 
 </div>
 
