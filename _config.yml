@@ -18,7 +18,7 @@ gems:
 # Setup
 title:            Network Automation!
 tagline:          'Brownfield (mostly)'
-description:      'Gerald Dykeman <br />Domain Architect | Ansible <br />CCIE #36354' 
+description:      'Observations in network automation<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
 url:              http://gdykeman.github.io
 baseurl:          /
 
