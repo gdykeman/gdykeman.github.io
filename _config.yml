@@ -2,7 +2,7 @@
 markdown:         kramdown
 highlighter:      pygments
 
-theme: jekyll-theme-tactile
+theme: jekyll-theme-minimal
 
 # Permalinks
 permalink:        pretty
