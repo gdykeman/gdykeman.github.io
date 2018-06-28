@@ -9,10 +9,11 @@ permalink:        pretty
 #relative_permalinks: true
 
 # Plugins
-plugins:
- - jekyll-paginate
- - jekyll-gist
- - jekyll-remote-theme
+gems:
+  - jekyll-paginate
+  - redcarpet
+  - jekyll-gist
+  - pygments.rb
 
 # Setup
 title:            Network Automation!
