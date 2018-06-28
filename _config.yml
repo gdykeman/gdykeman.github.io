@@ -1,35 +1,40 @@
 # Dependencies
-markdown:         kramdown
+markdown:         redcarpet
 highlighter:      pygments
-
-theme: jekyll-theme-minimal
 
 # Permalinks
 permalink:        pretty
-#relative_permalinks: true
-
-# Plugins
-gems:
-  - jekyll-paginate
-  - redcarpet
-  - jekyll-gist
-  - pygments.rb
 
 # Setup
-title:            Network Automation!
+title:            Network Automation
 tagline:          'Brownfield (mostly)'
-description:      'Observations in network automation<br /> <a href="https://twitter.com/geralddykeman" target="_blank">@geralddykeman</a>'
+description:      'Gerald Dykeman<br /> CCIE #36354'
 url:              http://gdykeman.github.io
 baseurl:          /
 
 author:
   name:           'Gerald Dykeman'
   url:            https://twitter.com/geralddykeman
+  linkedin:       https://linkedin.com/u/gdykeman
 
 paginate:         5
 
+excerpt_separator: "<!--more-->"
+
+gems:
+  - jekyll-paginate
+  - redcarpet
+  - jekyll-gist
+  - pygments.rb
+
+#Archive
+pages_list:
+  Archive: '/archive'
+
 # Custom vars
-version:          2.1.0
+#version:          2.1.0
 
 github:
   repo:           https://github.com/gdykeman
+
+theme: jekyll-theme-minimal

@@ -11,15 +11,20 @@
 
   <title>
     
-      Network Automation! &middot; Brownfield (mostly)
+      Network Automation &middot; Brownfield (mostly)
     
   </title>
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/public/css/poole.css">
+  <!-- <link rel="stylesheet" href="/public/css/poole.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/syntax.css"> -->
+  <!-- <link rel="stylesheet" href="/public/css/hyde.css"> -->
+  <!-- <link rel="stylesheet" -->
+
+<link rel="stylesheet" href="/public/css/poole.css">
   <link rel="stylesheet" href="/public/css/syntax.css">
   <link rel="stylesheet" href="/public/css/hyde.css">
-  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet"  href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
 
   <!-- Icons -->
   <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
@@ -27,20 +32,28 @@
 
   <!-- RSS -->
   <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 </head>
 
+  <h3 class="masthead-title">
+    <a href="/" title="Home">Network Automation</a>
 
-  <body>
+    
+    &nbsp;&nbsp;&nbsp;
+    <small><a href="/archive">Archive</a></small>
+    
+  </h3>
+  <body class="theme-base-05">
 
     <div class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
       <h1>
         <a href="/">
-          Network Automation!
+          Network Automation
         </a>
       </h1>
-      <p class="lead">Gerald Dykeman <br />CCIE #36354</p>
+      <p class="lead">Gerald Dykeman<br /> CCIE #36354</p>
     </div>
 
     <nav class="sidebar-nav">
@@ -61,6 +74,12 @@
         
       
         
+          
+            <a class="sidebar-nav-item" href="/acrhive/">Archive</a>
+          
+        
+      
+        
       
         
           
@@ -69,9 +88,14 @@
         
       
 
-      <a class="sidebar-nav-item" href="https://github.com/gdykeman/archive/v2.1.0.zip">Download</a>
-      <a class="sidebar-nav-item" href="https://github.com/gdykeman">GitHub project</a>
-      <span class="sidebar-nav-item">Currently v2.1.0</span>
+            <a class="sidebar-nav-item" href="https://github.com/gdykeman">GitHub project</a>
+
+            <a href="https://twitter.com/geralddykeman"> <i class="fa fa-twitter"></i> </a>
+            <a href="https://github.com/gdykeman"> <i class="fa fa-github"></i> </a>
+
+            <a href="https://linkedin.com/in/gdykeman"> <i class="fa fa-linkedin"></i> </a>
+
+
     </nav>
 
     <p>&copy; 2018. All rights reserved.</p>
@@ -93,20 +117,68 @@
 
     <p>Upgrading network images to stable and or later versions is nothing new in the networking world.  A recent discussion with a customer, however, encouraged the creation of a simple, yet effective playbook to help automate this process.</p>
 
-<p>The two use cases were around:</p>
+<p>The two use cases were around:<br>
+1. CVE.  A vulnerability is reported and an image upgrade is required to resolve it.</p>
+
 <ol>
-  <li>
-    <p>CVE.  A vulnerability is reported and an image upgrade is required to resolve it.</p>
-  </li>
-  <li>
-    <p>Compliance checking.  Ensure that the networking devices are at the compliant and approved version of code, and if not, make sure that it is.</p>
-  </li>
+<li>Compliance checking.  Ensure that the networking devices are at the compliant and approved version of code, and if not, make sure that it is.</li>
 </ol>
 
 <p>At the time, the customer would SSH into each device to upgrade the image, wait for it to boot back up, check to make sure the image was upgraded to the correct version, then move onto the next device.  In the case of the vulnerability, this became an all hands on deck activity that resulted in many hours from multiple engineers to patch the network devices.</p>
 
-<p>Now, let’s take a look at an Ansible Playbook that can automate this process.</p>
-<pre><code class="language-yaml">
+<p>Now, let’s take a look at an Ansible Playbook that can automate this process.
+```yaml</p>
+
+<hr>
+
+<ul>
+<li>name: UPGRADE ROUTER FIRMWARE
+hosts: routers
+connection: network<em>cli
+gather</em>facts: no</li>
+</ul>
+
+<p>vars:
+    compliant<em>ios</em>version: 16.08.01a</p>
+
+<p>tasks:
+    - name: GATHER ROUTER FACTS
+      ios_facts:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>- name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+  block:
+  - name: COPY OVER IOS IMAGE
+    command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;
+
+  - name: SET BOOT SYSTEM FLASH
+    ios_config:
+      commands:
+        - &quot;boot system flash:system-image-filename.bin&quot;
+
+  - name: REBOOT ROUTER
+    ios_command:
+      commands:
+        - &quot;reload\n&quot;
+
+  - name: WAIT FOR ROUTER TO RETURN
+    wait_for:
+      host: &quot;{{inventory_hostname}}&quot;
+      port: 22
+      delay: 60
+    delegate_to: localhost
+
+  when: ansible_net_version != compliant_ios_version
+
+- name: GATHER ROUTER FACTS FOR VERIFICATION
+  ios_facts:
+
+- name: ASSERT THAT THE IOS VERSION IS CORRECT
+  assert:
+    that:
+      - compliant_ios_version == ansible_net_version
+</code></pre></div><div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>Let&#39;s step through the components!  
+
+First, the playbook level variables:  
+```yaml
 ---
 - name: UPGRADE ROUTER FIRMWARE
   hosts: routers
@@ -117,110 +189,69 @@
     compliant_ios_version: 16.08.01a
 
   tasks:
-    - name: GATHER ROUTER FACTS
-      ios_facts:
-
-    - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
-      block:
-      - name: COPY OVER IOS IMAGE
-        command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
-
-      - name: SET BOOT SYSTEM FLASH
-        ios_config:
-          commands:
-            - "boot system flash:system-image-filename.bin"
-
-      - name: REBOOT ROUTER
-        ios_command:
-          commands:
-            - "reload\n"
-
-      - name: WAIT FOR ROUTER TO RETURN
-        wait_for:
-          host: "{{inventory_hostname}}"
-          port: 22
-          delay: 60
-        delegate_to: localhost
-
-      when: ansible_net_version != compliant_ios_version
-
-    - name: GATHER ROUTER FACTS FOR VERIFICATION
-      ios_facts:
-
-    - name: ASSERT THAT THE IOS VERSION IS CORRECT
-      assert:
-        that:
-          - compliant_ios_version == ansible_net_version
-
-</code></pre>
-<p>Let’s step through the components!</p>
-
-<p>First, the playbook level variables:</p>
-<pre><code class="language-yaml">---
-- name: UPGRADE ROUTER FIRMWARE
-  hosts: routers
-  connection: network_cli
-  gather_facts: no
-
-  vars:
-    compliant_ios_version: 16.08.01a
-
-  tasks:
-</code></pre>
-<p>We’re passing in the following:<br />
-<code>name</code> - Naming our playbook.<br />
-<code>hosts</code> - What nodes are we targeting? In this case, we are targeting a group called routers.<br />
-<code>connection</code> - Defining the connection type.<br />
-<code>gather_facts</code> - This is a server specific task and does not apply to us.<br />
-<code>vars</code> - Defining a variable that we will use to compare IOS versions.<br />
+</code></pre></div>
+<p>We&#39;re passing in the following:<br>
+<code>name</code> - Naming our playbook.<br>
+<code>hosts</code> - What nodes are we targeting? In this case, we are targeting a group called routers.<br>
+<code>connection</code> - Defining the connection type.<br>
+<code>gather_facts</code> - This is a server specific task and does not apply to us.<br>
+<code>vars</code> - Defining a variable that we will use to compare IOS versions.<br>
 <code>tasks</code> - Where we will list the tasks we want the playbook to accomplish.</p>
 
-<p>The first task:</p>
-<pre><code class="language-yaml">- name: GATHER ROUTER FACTS
+<p>The first task:
+<code>yaml
+- name: GATHER ROUTER FACTS
   ios_facts:
-</code></pre>
-<p>The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.<br />
-<a href="https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html">ios_facts_module</a></p>
+</code>
+The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.<br>
+<a href="https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html">ios<em>facts</em>module</a></p>
 
-<p>The <code>ios_facts</code> module provides us with the <code>ansible_net_version</code> which defines the operating system version running on the remote device.  We’ll be using this as conditional logic in our proceeding tasks.</p>
+<p>The <code>ios_facts</code> module provides us with the <code>ansible_net_version</code> which defines the operating system version running on the remote device.  We&#39;ll be using this as conditional logic in our proceeding tasks.  </p>
 
-<p>Next, we create a <code>block</code> which contains a list of tasks.  We put a conditional on this <code>block</code> with a <code>when</code> statement near the bottom of the playbook - or at the end of the <code>block</code>.  The <code>when</code> statement does a check to see if the current version of the remote device is <em>NOT</em> equal to the version we specify.  If it’s <em>NOT</em> equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that’s required.</p>
-<pre><code class="language-yaml">
-- name: UPGRADE IOS IMAGE IF NOT COMPLIANT
-  block:
-  - name: COPY OVER IOS IMAGE
-    command: "scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin"
+<p>Next, we create a <code>block</code> which contains a list of tasks.  We put a conditional on this <code>block</code> with a <code>when</code> statement near the bottom of the playbook - or at the end of the <code>block</code>.  The <code>when</code> statement does a check to see if the current version of the remote device is <em>NOT</em> equal to the version we specify.  If it&#39;s <em>NOT</em> equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that&#39;s required.
+```yaml</p>
 
-  - name: SET BOOT SYSTEM FLASH
-    ios_config:
-      commands:
-        - "boot system flash:system-image-filename.bin"
+<ul>
+<li><p>name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+block:</p>
 
-  - name: REBOOT ROUTER
-    ios_command:
-      commands:
-        - "reload\n"
+<ul>
+<li>name: COPY OVER IOS IMAGE
+command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;</li>
+<li>name: SET BOOT SYSTEM FLASH
+ios_config:
+commands:
 
-  - name: WAIT FOR ROUTER TO RETURN
-    wait_for:
-      host: "{{inventory_hostname}}"
-      port: 22
-      delay: 60
-    delegate_to: localhost
+<ul>
+<li>&quot;boot system flash:system-image-filename.bin&quot;</li>
+</ul></li>
+<li>name: REBOOT ROUTER
+ios_command:
+commands:
 
-  when: ansible_net_version != compliant_ios_version
+<ul>
+<li>&quot;reload\n&quot;</li>
+</ul></li>
+<li>name: WAIT FOR ROUTER TO RETURN
+wait<em>for:
+host: &quot;{{inventory</em>hostname}}&quot;
+port: 22
+delay: 60
+delegate_to: localhost</li>
+</ul></li>
+</ul>
 
-</code></pre>
+<p>when: ansible<em>net</em>version != compliant<em>ios</em>version</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the `SCP` command to do so.
 
-<p>The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the <code>SCP</code> command to do so.</p>
+Next, we utilize the `ios_config` module to set the boot system of the remote device so it&#39;ll use the image the new image if the version is not compliant or what we want it to be.
 
-<p>Next, we utilize the <code>ios_config</code> module to set the boot system of the remote device so it’ll use the image the new image if the version is not compliant or what we want it to be.</p>
+We are now ready to reboot the remote device so it boots into the correct image.  We pass in **&quot;reload\n&quot;** into the `ios_command` to perform the reload.
 
-<p>We are now ready to reboot the remote device so it boots into the correct image.  We pass in <strong>“reload\n”</strong> into the <code>ios_command</code> to perform the reload.</p>
+The next task, as the name suggests, `waits for` the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.
 
-<p>The next task, as the name suggests, <code>waits for</code> the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.</p>
+```yaml
 
-<pre><code class="language-yaml">
 - name: GATHER ROUTER FACTS FOR VERIFICATION
   ios_facts:
 
@@ -228,12 +259,12 @@
   assert:
     that:
       - compliant_ios_version == ansible_net_version
-
-</code></pre>
+</code></pre></div>
 <p>With the remote device having been rebooted, we execute the <code>ios_facts</code> module again to capture the new <code>ansible_net_version</code>.</p>
 
 <p>Finally, we use the <code>assert</code> module to ensure that the upgrade was successful and the remote device is running the compliant IOS version.  By using the <code>assert</code> module, we make the playbook fail if it is <em>NOT</em> the correct version.</p>
 
+    <a href="/2018/06/26/ios-upgrades/"> Read more </a>
   </div>
   
 </div>
@@ -246,7 +277,19 @@
     <span class="pagination-item newer">Newer</span>
   
 </div>
+
+                                      
+
     </div>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-121574433-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-121574433-1');
+</script>
+
 
   </body>
 </html>

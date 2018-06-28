@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
- <title>Network Automation!</title>
+ <title>Network Automation</title>
  <link href="http://localhost:4000/atom.xml" rel="self"/>
  <link href="http://localhost:4000/"/>
- <updated>2018-06-28T09:22:07-04:00</updated>
+ <updated>2018-06-28T09:43:33-04:00</updated>
  <id>http://localhost:4000</id>
  <author>
    <name>Gerald Dykeman</name>
@@ -19,20 +19,68 @@
    <id>http://localhost:4000/2018/06/26/ios-upgrades</id>
    <content type="html">&lt;p&gt;Upgrading network images to stable and or later versions is nothing new in the networking world.  A recent discussion with a customer, however, encouraged the creation of a simple, yet effective playbook to help automate this process.&lt;/p&gt;
 
-&lt;p&gt;The two use cases were around:&lt;/p&gt;
+&lt;p&gt;The two use cases were around:&lt;br&gt;
+1. CVE.  A vulnerability is reported and an image upgrade is required to resolve it.&lt;/p&gt;
+
 &lt;ol&gt;
-  &lt;li&gt;
-    &lt;p&gt;CVE.  A vulnerability is reported and an image upgrade is required to resolve it.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Compliance checking.  Ensure that the networking devices are at the compliant and approved version of code, and if not, make sure that it is.&lt;/p&gt;
-  &lt;/li&gt;
+&lt;li&gt;Compliance checking.  Ensure that the networking devices are at the compliant and approved version of code, and if not, make sure that it is.&lt;/li&gt;
 &lt;/ol&gt;
 
 &lt;p&gt;At the time, the customer would SSH into each device to upgrade the image, wait for it to boot back up, check to make sure the image was upgraded to the correct version, then move onto the next device.  In the case of the vulnerability, this became an all hands on deck activity that resulted in many hours from multiple engineers to patch the network devices.&lt;/p&gt;
 
-&lt;p&gt;Now, let’s take a look at an Ansible Playbook that can automate this process.&lt;/p&gt;
-&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;
+&lt;p&gt;Now, let’s take a look at an Ansible Playbook that can automate this process.
+```yaml&lt;/p&gt;
+
+&lt;hr&gt;
+
+&lt;ul&gt;
+&lt;li&gt;name: UPGRADE ROUTER FIRMWARE
+hosts: routers
+connection: network&lt;em&gt;cli
+gather&lt;/em&gt;facts: no&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;vars:
+    compliant&lt;em&gt;ios&lt;/em&gt;version: 16.08.01a&lt;/p&gt;
+
+&lt;p&gt;tasks:
+    - name: GATHER ROUTER FACTS
+      ios_facts:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;- name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+  block:
+  - name: COPY OVER IOS IMAGE
+    command: &amp;quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&amp;quot;
+
+  - name: SET BOOT SYSTEM FLASH
+    ios_config:
+      commands:
+        - &amp;quot;boot system flash:system-image-filename.bin&amp;quot;
+
+  - name: REBOOT ROUTER
+    ios_command:
+      commands:
+        - &amp;quot;reload\n&amp;quot;
+
+  - name: WAIT FOR ROUTER TO RETURN
+    wait_for:
+      host: &amp;quot;{{inventory_hostname}}&amp;quot;
+      port: 22
+      delay: 60
+    delegate_to: localhost
+
+  when: ansible_net_version != compliant_ios_version
+
+- name: GATHER ROUTER FACTS FOR VERIFICATION
+  ios_facts:
+
+- name: ASSERT THAT THE IOS VERSION IS CORRECT
+  assert:
+    that:
+      - compliant_ios_version == ansible_net_version
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Let&amp;#39;s step through the components!  
+
+First, the playbook level variables:  
+```yaml
 ---
 - name: UPGRADE ROUTER FIRMWARE
   hosts: routers
@@ -43,110 +91,69 @@
     compliant_ios_version: 16.08.01a
 
   tasks:
-    - name: GATHER ROUTER FACTS
-      ios_facts:
-
-    - name: UPGRADE IOS IMAGE IF NOT COMPLIANT
-      block:
-      - name: COPY OVER IOS IMAGE
-        command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;
-
-      - name: SET BOOT SYSTEM FLASH
-        ios_config:
-          commands:
-            - &quot;boot system flash:system-image-filename.bin&quot;
-
-      - name: REBOOT ROUTER
-        ios_command:
-          commands:
-            - &quot;reload\n&quot;
-
-      - name: WAIT FOR ROUTER TO RETURN
-        wait_for:
-          host: &quot;{{inventory_hostname}}&quot;
-          port: 22
-          delay: 60
-        delegate_to: localhost
-
-      when: ansible_net_version != compliant_ios_version
-
-    - name: GATHER ROUTER FACTS FOR VERIFICATION
-      ios_facts:
-
-    - name: ASSERT THAT THE IOS VERSION IS CORRECT
-      assert:
-        that:
-          - compliant_ios_version == ansible_net_version
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Let’s step through the components!&lt;/p&gt;
-
-&lt;p&gt;First, the playbook level variables:&lt;/p&gt;
-&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;---
-- name: UPGRADE ROUTER FIRMWARE
-  hosts: routers
-  connection: network_cli
-  gather_facts: no
-
-  vars:
-    compliant_ios_version: 16.08.01a
-
-  tasks:
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;We’re passing in the following:&lt;br /&gt;
-&lt;code&gt;name&lt;/code&gt; - Naming our playbook.&lt;br /&gt;
-&lt;code&gt;hosts&lt;/code&gt; - What nodes are we targeting? In this case, we are targeting a group called routers.&lt;br /&gt;
-&lt;code&gt;connection&lt;/code&gt; - Defining the connection type.&lt;br /&gt;
-&lt;code&gt;gather_facts&lt;/code&gt; - This is a server specific task and does not apply to us.&lt;br /&gt;
-&lt;code&gt;vars&lt;/code&gt; - Defining a variable that we will use to compare IOS versions.&lt;br /&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We&amp;#39;re passing in the following:&lt;br&gt;
+&lt;code&gt;name&lt;/code&gt; - Naming our playbook.&lt;br&gt;
+&lt;code&gt;hosts&lt;/code&gt; - What nodes are we targeting? In this case, we are targeting a group called routers.&lt;br&gt;
+&lt;code&gt;connection&lt;/code&gt; - Defining the connection type.&lt;br&gt;
+&lt;code&gt;gather_facts&lt;/code&gt; - This is a server specific task and does not apply to us.&lt;br&gt;
+&lt;code&gt;vars&lt;/code&gt; - Defining a variable that we will use to compare IOS versions.&lt;br&gt;
 &lt;code&gt;tasks&lt;/code&gt; - Where we will list the tasks we want the playbook to accomplish.&lt;/p&gt;
 
-&lt;p&gt;The first task:&lt;/p&gt;
-&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;- name: GATHER ROUTER FACTS
+&lt;p&gt;The first task:
+&lt;code&gt;yaml
+- name: GATHER ROUTER FACTS
   ios_facts:
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.&lt;br /&gt;
-&lt;a href=&quot;https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html&quot;&gt;ios_facts_module&lt;/a&gt;&lt;/p&gt;
+&lt;/code&gt;
+The above tasks runs the ios_facts module which collects facts from remote devices running Cisco IOS.&lt;br&gt;
+&lt;a href=&quot;https://docs.ansible.com/ansible/2.5/modules/ios_facts_module.html&quot;&gt;ios&lt;em&gt;facts&lt;/em&gt;module&lt;/a&gt;&lt;/p&gt;
 
-&lt;p&gt;The &lt;code&gt;ios_facts&lt;/code&gt; module provides us with the &lt;code&gt;ansible_net_version&lt;/code&gt; which defines the operating system version running on the remote device.  We’ll be using this as conditional logic in our proceeding tasks.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;ios_facts&lt;/code&gt; module provides us with the &lt;code&gt;ansible_net_version&lt;/code&gt; which defines the operating system version running on the remote device.  We&amp;#39;ll be using this as conditional logic in our proceeding tasks.  &lt;/p&gt;
 
-&lt;p&gt;Next, we create a &lt;code&gt;block&lt;/code&gt; which contains a list of tasks.  We put a conditional on this &lt;code&gt;block&lt;/code&gt; with a &lt;code&gt;when&lt;/code&gt; statement near the bottom of the playbook - or at the end of the &lt;code&gt;block&lt;/code&gt;.  The &lt;code&gt;when&lt;/code&gt; statement does a check to see if the current version of the remote device is &lt;em&gt;NOT&lt;/em&gt; equal to the version we specify.  If it’s &lt;em&gt;NOT&lt;/em&gt; equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that’s required.&lt;/p&gt;
-&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;
-- name: UPGRADE IOS IMAGE IF NOT COMPLIANT
-  block:
-  - name: COPY OVER IOS IMAGE
-    command: &quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&quot;
+&lt;p&gt;Next, we create a &lt;code&gt;block&lt;/code&gt; which contains a list of tasks.  We put a conditional on this &lt;code&gt;block&lt;/code&gt; with a &lt;code&gt;when&lt;/code&gt; statement near the bottom of the playbook - or at the end of the &lt;code&gt;block&lt;/code&gt;.  The &lt;code&gt;when&lt;/code&gt; statement does a check to see if the current version of the remote device is &lt;em&gt;NOT&lt;/em&gt; equal to the version we specify.  If it&amp;#39;s &lt;em&gt;NOT&lt;/em&gt; equal, the tasks in the block will execute and proceed to upgrade the remote device to the version of code that&amp;#39;s required.
+```yaml&lt;/p&gt;
 
-  - name: SET BOOT SYSTEM FLASH
-    ios_config:
-      commands:
-        - &quot;boot system flash:system-image-filename.bin&quot;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;name: UPGRADE IOS IMAGE IF NOT COMPLIANT
+block:&lt;/p&gt;
 
-  - name: REBOOT ROUTER
-    ios_command:
-      commands:
-        - &quot;reload\n&quot;
+&lt;ul&gt;
+&lt;li&gt;name: COPY OVER IOS IMAGE
+command: &amp;quot;scp system-image-filename.bin {{inventory_hostname}}:/system-image-filename.bin&amp;quot;&lt;/li&gt;
+&lt;li&gt;name: SET BOOT SYSTEM FLASH
+ios_config:
+commands:
 
-  - name: WAIT FOR ROUTER TO RETURN
-    wait_for:
-      host: &quot;{{inventory_hostname}}&quot;
-      port: 22
-      delay: 60
-    delegate_to: localhost
+&lt;ul&gt;
+&lt;li&gt;&amp;quot;boot system flash:system-image-filename.bin&amp;quot;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;name: REBOOT ROUTER
+ios_command:
+commands:
 
-  when: ansible_net_version != compliant_ios_version
+&lt;ul&gt;
+&lt;li&gt;&amp;quot;reload\n&amp;quot;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;name: WAIT FOR ROUTER TO RETURN
+wait&lt;em&gt;for:
+host: &amp;quot;{{inventory&lt;/em&gt;hostname}}&amp;quot;
+port: 22
+delay: 60
+delegate_to: localhost&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
-&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;when: ansible&lt;em&gt;net&lt;/em&gt;version != compliant&lt;em&gt;ios&lt;/em&gt;version&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the `SCP` command to do so.
 
-&lt;p&gt;The first task within the block is to copy over the Cisco IOS image to the remote device.  We utilize the &lt;code&gt;SCP&lt;/code&gt; command to do so.&lt;/p&gt;
+Next, we utilize the `ios_config` module to set the boot system of the remote device so it&amp;#39;ll use the image the new image if the version is not compliant or what we want it to be.
 
-&lt;p&gt;Next, we utilize the &lt;code&gt;ios_config&lt;/code&gt; module to set the boot system of the remote device so it’ll use the image the new image if the version is not compliant or what we want it to be.&lt;/p&gt;
+We are now ready to reboot the remote device so it boots into the correct image.  We pass in **&amp;quot;reload\n&amp;quot;** into the `ios_command` to perform the reload.
 
-&lt;p&gt;We are now ready to reboot the remote device so it boots into the correct image.  We pass in &lt;strong&gt;“reload\n”&lt;/strong&gt; into the &lt;code&gt;ios_command&lt;/code&gt; to perform the reload.&lt;/p&gt;
+The next task, as the name suggests, `waits for` the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.
 
-&lt;p&gt;The next task, as the name suggests, &lt;code&gt;waits for&lt;/code&gt; the remote device to reachable again.  We specify the port we want to test reachability against and an initial delay before we begin to poll for reachability.  Once the remote device is reachable, we do a final verification of the version.&lt;/p&gt;
+```yaml
 
-&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;
 - name: GATHER ROUTER FACTS FOR VERIFICATION
   ios_facts:
 
@@ -154,8 +161,7 @@
   assert:
     that:
       - compliant_ios_version == ansible_net_version
-
-&lt;/code&gt;&lt;/pre&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;With the remote device having been rebooted, we execute the &lt;code&gt;ios_facts&lt;/code&gt; module again to capture the new &lt;code&gt;ansible_net_version&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;Finally, we use the &lt;code&gt;assert&lt;/code&gt; module to ensure that the upgrade was successful and the remote device is running the compliant IOS version.  By using the &lt;code&gt;assert&lt;/code&gt; module, we make the playbook fail if it is &lt;em&gt;NOT&lt;/em&gt; the correct version.&lt;/p&gt;
