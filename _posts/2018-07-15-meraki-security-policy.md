@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Grabbing L3 Firewall Policy Information from Meraki
+title: Grabbing L3 Firewall Policy Information from Cisco Meraki
 comments: true
 ---
 
